@@ -247,11 +247,12 @@ class CUT_model(Model):
             fake_B = fake[:real_A.shape[0]]
             if self.use_nce_identity:
                 idt_B = fake[real_A.shape[0]:]
-            NCE_loss = self.nce_loss_func(real_A, fake_B, self.netE, self.netF)
+            NCE_loss = self.nce_loss_func(
+                real_A, fake_B, self.netE, self.netF) * self.nce_lambda
             if self.use_nce_identity:
                 NCE_B_loss = self.nce_loss_func(
-                    real_B, idt_B, self.netE, self.netF)
-                NCE_loss = (NCE_loss + NCE_B_loss) * 0.5 * self.nce_lambda
+                    real_B, idt_B, self.netE, self.netF) * self.nce_lambda
+                NCE_loss = (NCE_loss + NCE_B_loss) * 0.5
 
             if self.vgg_lambda > 0:
                 VGG_loss = self.vgg_lambda * self.vgg_loss_func(real_B, idt_B)
