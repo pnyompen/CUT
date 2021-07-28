@@ -278,9 +278,9 @@ class CUT_model(Model):
             D_loss = (D_fake_loss + D_real_loss) * 0.5
 
             """Calculate GAN loss and NCE loss for the generator"""
-            G_loss = tf.reduce_mean(self.gan_loss_func(
+            G_GAN_loss = tf.reduce_mean(self.gan_loss_func(
                 fake_score, True, for_discriminator=False))
-            G_loss += NCE_loss + VGG_loss
+            G_loss = G_GAN_loss + NCE_loss + VGG_loss
 
         D_loss_grads = tape.gradient(D_loss, self.netD.trainable_variables)
         self.D_optimizer.apply_gradients(
@@ -297,6 +297,7 @@ class CUT_model(Model):
         del tape
         return {'D_loss': D_loss,
                 'G_loss': G_loss,
+                'G_GAN_loss': G_GAN_loss,
                 'VGG_loss': VGG_loss,
                 'NCE_loss': NCE_loss}
 
