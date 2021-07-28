@@ -28,7 +28,7 @@ def Generator(input_shape, output_shape, norm_layer, use_antialias: bool, resnet
     For InstanceNorm, we do not use learnable affine parameters. We do not track running statistics. 
     """
     # use_bias = (norm_layer == 'instance')
-    use_bias = False
+    use_bias = (norm_layer == 'instance')
 
     def get_n_filter(i: int) -> int:
         size = ngf*2**i
@@ -58,7 +58,7 @@ def Generator(input_shape, output_shape, norm_layer, use_antialias: bool, resnet
                                    norm_layer=norm_layer, activation='relu')(x)
     x = Padding2D(3, pad_type='reflect')(x)
     outputs = ConvBlock(output_shape[-1], 7,
-                        padding='valid', activation='tanh')(x)
+                        padding='valid', activation='tanh', use_bias=use_bias)(x)
 
     return Model(inputs=inputs, outputs=outputs, name='generator')
 
@@ -188,6 +188,7 @@ class CUT_model(Model):
                  use_diffaugment=False,
                  diff_augment_policy='color,translation,cutout',
                  vgg_lambda=10,
+                 nce_lambda=1,
                  **kwargs):
         assert cut_mode in ['cut', 'fastcut']
         assert gan_mode in ['lsgan', 'nonsaturating', 'hinge']
@@ -207,6 +208,7 @@ class CUT_model(Model):
         self.netE = Encoder(self.netG, self.nce_layers)
         self.netF = PatchSampleMLP(netF_units, netF_num_patches)
         self.vgg_lambda = vgg_lambda
+        self.nce_lambda = nce_lambda
 
         if cut_mode == 'cut':
             self.nce_lambda = 1.0
@@ -249,7 +251,7 @@ class CUT_model(Model):
             if self.use_nce_identity:
                 NCE_B_loss = self.nce_loss_func(
                     real_B, idt_B, self.netE, self.netF)
-                NCE_loss = (NCE_loss + NCE_B_loss) * 0.5
+                NCE_loss = (NCE_loss + NCE_B_loss) * 0.5 * self.nce_lambda
 
             if self.vgg_lambda > 0:
                 VGG_loss = self.vgg_lambda * self.vgg_loss_func(real_B, idt_B)

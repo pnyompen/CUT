@@ -10,6 +10,7 @@ ResBlock
 import tensorflow as tf
 import numpy as np
 import copy
+from tensorflow_addons.layers import InstanceNormalization
 
 from tensorflow.keras.layers import (
     Layer, Conv2D, Activation, BatchNormalization,
@@ -41,35 +42,35 @@ class Padding2D(Layer):
         return tf.pad(inputs, padding_tensor, mode=self.pad_type)
 
 
-class InstanceNorm(tf.keras.layers.Layer):
-    """ Instance Normalization layer (https://arxiv.org/abs/1607.08022).
-    """
+# class InstanceNorm(tf.keras.layers.Layer):
+#     """ Instance Normalization layer (https://arxiv.org/abs/1607.08022).
+#     """
 
-    def __init__(self, epsilon=1e-5, affine=False, **kwargs):
-        super(InstanceNorm, self).__init__(**kwargs)
-        self.epsilon = epsilon
-        self.affine = affine
+#     def __init__(self, epsilon=1e-5, affine=False, **kwargs):
+#         super(InstanceNorm, self).__init__(**kwargs)
+#         self.epsilon = epsilon
+#         self.affine = affine
 
-    def build(self, input_shape):
-        if self.affine:
-            self.gamma = self.add_weight(name='gamma',
-                                         shape=(input_shape[-1],),
-                                         initializer=tf.random_normal_initializer(
-                                             0, 0.02),
-                                         trainable=True)
-            self.beta = self.add_weight(name='beta',
-                                        shape=(input_shape[-1],),
-                                        initializer=tf.zeros_initializer(),
-                                        trainable=True)
+#     def build(self, input_shape):
+#         if self.affine:
+#             self.gamma = self.add_weight(name='gamma',
+#                                          shape=(input_shape[-1],),
+#                                          initializer=tf.random_normal_initializer(
+#                                              0, 0.02),
+#                                          trainable=True)
+#             self.beta = self.add_weight(name='beta',
+#                                         shape=(input_shape[-1],),
+#                                         initializer=tf.zeros_initializer(),
+#                                         trainable=True)
 
-    def call(self, inputs, training=None):
-        mean, var = tf.nn.moments(inputs, axes=[1, 2], keepdims=True)
-        x = tf.divide(tf.subtract(inputs, mean),
-                      tf.math.sqrt(tf.add(var, self.epsilon)))
+#     def call(self, inputs, training=None):
+#         mean, var = tf.nn.moments(inputs, axes=[1, 2], keepdims=True)
+#         x = tf.divide(tf.subtract(inputs, mean),
+#                       tf.math.sqrt(tf.add(var, self.epsilon)))
 
-        if self.affine:
-            return self.gamma * x + self.beta
-        return x
+#         if self.affine:
+#             return self.gamma * x + self.beta
+#         return x
 
 
 class AntialiasSampling(tf.keras.layers.Layer):
@@ -137,7 +138,7 @@ class ConvBlock(Layer):
         if norm_layer == 'batch':
             self.normalization = BatchNormalization()
         elif norm_layer == 'instance':
-            self.normalization = InstanceNorm(affine=~use_bias)
+            self.normalization = InstanceNormalization()
         else:
             self.normalization = tf.identity
 
@@ -174,7 +175,7 @@ class ConvTransposeBlock(Layer):
         if norm_layer == 'batch':
             self.normalization = BatchNormalization()
         elif norm_layer == 'instance':
-            self.normalization = InstanceNorm(affine=~use_bias)
+            self.normalization = InstanceNormalization()
         else:
             self.normalization = tf.identity
 
@@ -244,7 +245,7 @@ class ConvDepthwiseBlock(Layer):
             if norm_layer == 'batch':
                 return BatchNormalization()
             elif norm_layer == 'instance':
-                return InstanceNorm(affine=~use_bias)
+                return InstanceNormalization()
             else:
                 return Lambda(lambda x: tf.identity(x))
         if activation == 'relu':
@@ -294,7 +295,7 @@ class ConvDepthwiseTransposeBlock(Layer):
         if norm_layer == 'batch':
             normalization = BatchNormalization()
         elif norm_layer == 'instance':
-            normalization = InstanceNorm(affine=~use_bias)
+            normalization = InstanceNormalization()
         else:
             normalization = Lambda(lambda x: tf.identity(x))
         if activation == 'relu':
@@ -345,7 +346,7 @@ class InvertedResBlock(Layer):
             if norm_layer == 'batch':
                 return BatchNormalization()
             elif norm_layer == 'instance':
-                return InstanceNorm(affine=~use_bias)
+                return InstanceNormalization()
             else:
                 return Lambda(lambda x: tf.identity(x))
         if activation == 'relu':
